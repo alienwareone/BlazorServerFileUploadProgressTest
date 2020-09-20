@@ -3,46 +3,71 @@
 
 <h1>Upload</h1>
 
-<BlazorServerFileUploadProgressTest.Components.Progress @bind-Percent="uploadProgress" />
+<InputFile OnChange="HandleFileSelected" @ref="inputFile" />
 
-<InputFile OnChange="HandleFileSelected" />
-@if (picture != null)
+@if (errorMessage != null)
 {
-    <img src="data:image/jpeg;base64,@picture" style="max-height: 200px; max-width: 200px;" />
+    @errorMessage
+}
+else if (uploading)
+{
+    @:Hochladen. Bitte warten... (@uploadProgress%)
+}
+else
+{
+    if (picture != null)
+    {
+        <img src="data:image/jpeg;base64,@picture" style="max-height: 200px; max-width: 200px;" />
+    }
 }
 
 @code {
     private string picture;
+    private bool uploading;
     private int uploadProgress = -1;
+    private string errorMessage;
+    private InputFile inputFile;
 
     async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
+        uploading = true;
+        inputFile.AdditionalAttributes ??= new Dictionary<string, object>();
+        inputFile.AdditionalAttributes.Add("style", "display:none;");
+
         var file = e.File;
         var bufferSize = 1024;
         var buffer = new byte[bufferSize]; // read in chunks of 2KB
 
-        using (var inputFileStream = file.OpenReadStream(file.Size))
-        using (var memoryFileStream = new MemoryStream())
+        try
         {
-            int bytesRead;
-            var lastUploadProgress = uploadProgress;
-            while ((bytesRead = await inputFileStream.ReadAsync(buffer)) > 0)
+            using (var inputFileStream = file.OpenReadStream(file.Size))
+            using (var memoryFileStream = new MemoryStream())
             {
-                memoryFileStream.Write(buffer, 0, bytesRead);
-                uploadProgress = (int)((float)memoryFileStream.Length / file.Size * 100);
-
-                if (uploadProgress > lastUploadProgress + new Random().Next(10, 20))
+                int bytesRead;
+                var lastUploadProgress = uploadProgress;
+                while ((bytesRead = await inputFileStream.ReadAsync(buffer)) > 0)
                 {
-                    lastUploadProgress = uploadProgress;
-                    StateHasChanged();
-                }
-            }
+                    memoryFileStream.Write(buffer, 0, bytesRead);
+                    uploadProgress = (int)((float)memoryFileStream.Length / file.Size * 100);
 
-            var data = memoryFileStream.ToArray();
-            picture = Convert.ToBase64String(data);
+                    if (uploadProgress > lastUploadProgress + new Random().Next(5, 10))
+                    {
+                        lastUploadProgress = uploadProgress;
+                        StateHasChanged();
+                    }
+                }
+
+                var data = memoryFileStream.ToArray();
+                picture = Convert.ToBase64String(data);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
         }
 
-        uploadProgress = -1;
+        uploading = false;
+        inputFile.AdditionalAttributes.Remove("style");
         StateHasChanged();
     }
 }

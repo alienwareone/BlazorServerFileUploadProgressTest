@@ -3,6 +3,8 @@
 
 <h1>Upload</h1>
 
+<InputFile OnChange="HandleFileSelected" />
+
 @if (errorMessage != null)
 {
     @errorMessage
@@ -13,7 +15,6 @@ else if (uploading)
 }
 else
 {
-    <InputFile OnChange="HandleFileSelected" />
     if (picture != null)
     {
         <img src="data:image/jpeg;base64,@picture" style="max-height: 200px; max-width: 200px;" />
@@ -50,7 +51,7 @@ else
                     memoryFileStream.Write(buffer, 0, bytesRead);
                     uploadProgress = (int)((float)memoryFileStream.Length / file.Size * 100);
 
-                    if (uploadProgress > lastUploadProgress + new Random().Next(10, 20))
+                    if (uploadProgress > lastUploadProgress + new Random().Next(5, 10))
                     {
                         lastUploadProgress = uploadProgress;
                         StateHasChanged();
