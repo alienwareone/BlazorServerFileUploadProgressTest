@@ -1,0 +1,23 @@
+﻿@if (_percent >= 0)
+{
+    <div>Hochladen. Bitte warten... (@_percent%)</div>
+}
+
+@code {
+    private int _percent;
+
+    [Parameter]
+    public int Percent
+    {
+        get => _percent;
+        set
+        {
+            if (_percent == value) return;
+            _percent = value;
+            PercentChanged.InvokeAsync(value);
+        }
+    }
+
+    [Parameter]
+    public EventCallback<int> PercentChanged { get; set; }
+}

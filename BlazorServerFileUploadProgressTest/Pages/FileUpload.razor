@@ -1,0 +1,72 @@
+﻿@page "/file-upload"
+@using System.IO
+
+<h1>Upload</h1>
+
+@if (errorMessage != null)
+{
+    @errorMessage
+}
+else if (uploading)
+{
+    @:Hochladen. Bitte warten... (@uploadProgress%)
+}
+else
+{
+    <InputFile OnChange="HandleFileSelected" />
+    if (picture != null)
+    {
+        <img src="data:image/jpeg;base64,@picture" style="max-height: 200px; max-width: 200px;" />
+    }
+}
+
+@code {
+    private string picture;
+    private bool uploading;
+    private int uploadProgress = -1;
+    private string errorMessage;
+
+    async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        // Error with this line (if you comment this out your fine):
+        uploading = true;
+        // Because this triggers "StateHasChanged()" and this removes the "<InputFile />" element
+        // from the DOM which leads to the following error:
+        // "Cannot read property '_blazorFilesById' of null TypeError: Cannot read property '_blazorFilesById' of null at a..."
+
+        var file = e.File;
+        var bufferSize = 1024;
+        var buffer = new byte[bufferSize]; // read in chunks of 2KB
+
+        try
+        {
+            using (var inputFileStream = file.OpenReadStream(file.Size))
+            using (var memoryFileStream = new MemoryStream())
+            {
+                int bytesRead;
+                var lastUploadProgress = uploadProgress;
+                while ((bytesRead = await inputFileStream.ReadAsync(buffer)) > 0)
+                {
+                    memoryFileStream.Write(buffer, 0, bytesRead);
+                    uploadProgress = (int)((float)memoryFileStream.Length / file.Size * 100);
+
+                    if (uploadProgress > lastUploadProgress + new Random().Next(10, 20))
+                    {
+                        lastUploadProgress = uploadProgress;
+                        StateHasChanged();
+                    }
+                }
+
+                var data = memoryFileStream.ToArray();
+                picture = Convert.ToBase64String(data);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+
+        uploading = false;
+        StateHasChanged();
+    }
+}
